@@ -1,0 +1,274 @@
+schema_version: "1.0"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ORIGINAL PROMPT (vague)
+#
+#   "Build me a simple task tracker I can use from the terminal."
+#
+# ELICITATION QUESTIONS ASKED
+#
+#   Q: Does it need to sync anywhere or is local storage fine?
+#   A: Local is fine.
+#
+#   Q: Should completed tasks disappear or stay visible?
+#   A: Stay visible, but marked done.
+#
+#   Q: Do you need to edit or delete tasks, or just add and complete?
+#   A: Just add and complete for now.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+
+counters:
+  URS: 2
+  SRS: 5
+  DDS: 4
+  DTC: 9
+
+requirements:
+
+  # ── URS: what the user wants ───────────────────────────────────────────────
+
+  URS-001:
+    id: URS-001
+    type: URS
+    title: "Add and complete tasks from the command line"
+    status: active
+    parent: null
+    description: |
+      As a user I want to add tasks and mark them done using short terminal
+      commands, without leaving my shell workflow.
+
+  URS-002:
+    id: URS-002
+    type: URS
+    title: "Tasks persist between sessions"
+    status: active
+    parent: null
+    description: |
+      Tasks I added yesterday should still be there when I open a new terminal.
+      I should not have to re-enter anything after a restart.
+
+  # ── SRS: observable system behaviors ──────────────────────────────────────
+
+  SRS-001:
+    id: SRS-001
+    type: SRS
+    title: "add command creates a new task"
+    status: active
+    parent: URS-001
+    description: |
+      Running `todo add <text>` appends a new incomplete task. The system
+      confirms creation and shows the assigned task ID.
+
+  SRS-002:
+    id: SRS-002
+    type: SRS
+    title: "list command shows all tasks with status"
+    status: active
+    parent: URS-001
+    description: |
+      Running `todo list` prints all tasks, each on its own line, with its ID,
+      completion status, and text. Incomplete and complete tasks are both shown.
+
+  SRS-003:
+    id: SRS-003
+    type: SRS
+    title: "done command marks a task complete"
+    status: active
+    parent: URS-001
+    description: |
+      Running `todo done <id>` marks the identified task as complete. The system
+      confirms. Running it on an already-complete task is a no-op with a notice.
+
+  SRS-004:
+    id: SRS-004
+    type: SRS
+    title: "Tasks stored in a local file"
+    status: active
+    parent: URS-002
+    description: |
+      All task data is written to a file on the local filesystem after every
+      mutating operation (add, done).
+
+  SRS-005:
+    id: SRS-005
+    type: SRS
+    title: "Tasks survive process restarts"
+    status: active
+    parent: URS-002
+    description: |
+      On startup the application reads the storage file and restores all
+      previously saved tasks. No task is ever lost due to process exit.
+
+  # ── DDS: design decisions ──────────────────────────────────────────────────
+
+  DDS-001:
+    id: DDS-001
+    type: DDS
+    title: "CLI uses argparse subcommands: add, list, done"
+    status: active
+    parent: SRS-001
+    description: |
+      Use Python's argparse with three subcommands. `add` takes a positional
+      `text` argument. `done` takes a positional `id` argument (integer).
+      `list` takes no arguments.
+
+  DDS-002:
+    id: DDS-002
+    type: DDS
+    title: "Task data model: id, text, done, created_at"
+    status: active
+    parent: SRS-001
+    description: |
+      Each task is a dict with four fields:
+        id         — auto-incrementing integer, starts at 1
+        text       — the string the user provided
+        done       — boolean, False on creation
+        created_at — ISO-8601 UTC timestamp string
+
+  DDS-003:
+    id: DDS-003
+    type: DDS
+    title: "Storage is ~/.tasks.json, read on start, written on change"
+    status: active
+    parent: SRS-004
+    description: |
+      Persist tasks as a JSON array at ~/.tasks.json. Load the file at startup
+      (empty list if missing). Write the full array back after every mutation.
+      No partial writes; always overwrite the file atomically via a temp file.
+
+  DDS-004:
+    id: DDS-004
+    type: DDS
+    title: "done command identifies task by integer id field"
+    status: active
+    parent: SRS-003
+    description: |
+      The `done` subcommand accepts the task's `id` integer. If no task with
+      that id exists, print an error to stderr and exit 1.
+
+  # ── DTC: test scenarios ────────────────────────────────────────────────────
+
+  DTC-001:
+    id: DTC-001
+    type: DTC
+    title: "add assigns next sequential id and prints confirmation"
+    status: active
+    parent: DDS-001
+    description: |
+      Verifies id auto-increment and stdout confirmation.
+    test_scenario: |
+      GIVEN an empty task list
+      WHEN `todo add "buy milk"` is run
+      THEN stdout contains "Added task 1: buy milk"
+      AND the task list contains exactly one task with id=1, text="buy milk", done=False
+
+  DTC-002:
+    id: DTC-002
+    type: DTC
+    title: "add on non-empty list assigns id = max(existing ids) + 1"
+    status: active
+    parent: DDS-001
+    description: |
+      Verifies id does not reset when tasks already exist.
+    test_scenario: |
+      GIVEN a task list containing tasks with ids 1 and 2
+      WHEN `todo add "call dentist"` is run
+      THEN the new task has id=3
+      AND stdout contains "Added task 3: call dentist"
+
+  DTC-003:
+    id: DTC-003
+    type: DTC
+    title: "list prints all tasks with [ ] or [x] status prefix"
+    status: active
+    parent: DDS-001
+    description: |
+      Verifies list output format for both states.
+    test_scenario: |
+      GIVEN tasks: id=1 done=False text="buy milk", id=2 done=True text="call dentist"
+      WHEN `todo list` is run
+      THEN stdout line 1 is "1  [ ]  buy milk"
+      AND stdout line 2 is "2  [x]  call dentist"
+
+  DTC-004:
+    id: DTC-004
+    type: DTC
+    title: "list on empty task list prints empty-state message"
+    status: active
+    parent: DDS-001
+    description: |
+      Verifies graceful empty state instead of blank output.
+    test_scenario: |
+      GIVEN an empty task list
+      WHEN `todo list` is run
+      THEN stdout contains "No tasks yet."
+
+  DTC-005:
+    id: DTC-005
+    type: DTC
+    title: "done marks task complete and prints confirmation"
+    status: active
+    parent: DDS-004
+    description: |
+      Verifies the happy path for the done command.
+    test_scenario: |
+      GIVEN a task with id=1, done=False
+      WHEN `todo done 1` is run
+      THEN the task with id=1 has done=True
+      AND stdout contains "Done: buy milk"
+
+  DTC-006:
+    id: DTC-006
+    type: DTC
+    title: "done on already-complete task prints notice, does not error"
+    status: active
+    parent: DDS-004
+    description: |
+      Verifies idempotency of the done command.
+    test_scenario: |
+      GIVEN a task with id=1, done=True
+      WHEN `todo done 1` is run
+      THEN exit code is 0
+      AND stdout contains "Already done."
+
+  DTC-007:
+    id: DTC-007
+    type: DTC
+    title: "done with unknown id exits 1 with error message"
+    status: active
+    parent: DDS-004
+    description: |
+      Verifies error handling for invalid id.
+    test_scenario: |
+      GIVEN a task list with no task id=99
+      WHEN `todo done 99` is run
+      THEN exit code is 1
+      AND stderr contains "No task with id 99"
+
+  DTC-008:
+    id: DTC-008
+    type: DTC
+    title: "tasks written to ~/.tasks.json after add"
+    status: active
+    parent: DDS-003
+    description: |
+      Verifies persistence after mutation.
+    test_scenario: |
+      GIVEN ~/.tasks.json does not exist
+      WHEN `todo add "walk the dog"` is run
+      THEN ~/.tasks.json exists
+      AND its contents parse as a JSON array containing one task with text="walk the dog"
+
+  DTC-009:
+    id: DTC-009
+    type: DTC
+    title: "tasks loaded from ~/.tasks.json on startup"
+    status: active
+    parent: DDS-003
+    description: |
+      Verifies that data persists across process restarts.
+    test_scenario: |
+      GIVEN ~/.tasks.json contains a valid task array with one task text="walk the dog"
+      WHEN `todo list` is run in a fresh process
+      THEN stdout contains "walk the dog"
