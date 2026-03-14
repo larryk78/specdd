@@ -1,0 +1,318 @@
+schema_version: "1.0"
+
+counters:
+  URS: 23
+  SRS: 101
+  DDS: 90
+  DTC: 53
+
+scripts:
+  git-hook:
+    id: git-hook
+    type: script
+    title: ".git/hooks/pre-commit"
+    path: ".git/hooks/pre-commit"
+
+  interactive-lastenheft:
+    id: interactive-lastenheft
+    type: script
+    title: "scripts/interactive_lastenheft.py"
+    path: "scripts/interactive_lastenheft.py"
+
+  validate-reqs:
+    id: validate-reqs
+    type: script
+    title: "scripts/validate_reqs.py"
+    path: "scripts/validate_reqs.py"
+
+requirements:
+  URS-018:
+    id: URS-018
+    type: URS
+    title: "Interactive Requirement Tree Browser"
+    status: needs_review
+    script: interactive-lastenheft
+    parent: null
+    description: |
+      Provide a terminal-based interactive tree browser for navigating the
+      requirement hierarchy. Supports vim-style keybindings, expand/collapse,
+      detail view, inline editing, and deletion of requirements.
+
+  SRS-042:
+    id: SRS-042
+    type: SRS
+    title: "Requirement Tree Data Model"
+    status: needs_review
+    script: interactive-lastenheft
+    parent: URS-018
+    description: |
+      Define and maintain the in-memory tree data model used by the TUI browser.
+      Includes TreeNode dataclass with id, type, title, status, parent, children,
+      expanded state, and depth.
+
+  SRS-044:
+    id: SRS-044
+    type: SRS
+    title: "Requirements Grouping by Script Attribute"
+    status: needs_review
+    script: interactive-lastenheft
+    parent: URS-018
+    description: |
+      Group and display requirements under their associated script node as the
+      top-level organizer in the tree hierarchy.
+
+  SRS-045:
+    id: SRS-045
+    type: SRS
+    title: "Scrollable Console Interface with Navigation"
+    status: needs_review
+    script: interactive-lastenheft
+    parent: URS-018
+    description: |
+      Render a curses-based scrollable console interface. The viewport must
+      track the cursor and scroll to keep selected item visible.
+
+  SRS-046:
+    id: SRS-046
+    type: SRS
+    title: "Tree Node Formatting and Visual Styling"
+    status: needs_review
+    script: interactive-lastenheft
+    parent: URS-018
+    description: |
+      Format each tree node with type-specific color, indent depth markers,
+      expand/collapse indicators ([+]/[-]/[>]), and status badge.
+
+  SRS-047:
+    id: SRS-047
+    type: SRS
+    title: "Node Expansion State Toggle Mechanism"
+    status: needs_review
+    script: interactive-lastenheft
+    parent: URS-018
+    description: |
+      Allow nodes to be expanded and collapsed. Space bar toggles the current
+      node. Expanding reveals direct children; collapsing hides all descendants.
+
+  SRS-048:
+    id: SRS-048
+    type: SRS
+    title: "Initial Tree Display Collapsed State"
+    status: needs_review
+    script: interactive-lastenheft
+    parent: URS-018
+    description: |
+      On startup, all tree nodes are displayed in collapsed state. User must
+      explicitly expand nodes to see children.
+
+  SRS-054:
+    id: SRS-054
+    type: SRS
+    title: "Vim-Style Navigation Support"
+    status: needs_review
+    script: interactive-lastenheft
+    parent: URS-018
+    description: |
+      Implement full vim-style navigation: j/k/h/l keys with same-parent sibling
+      traversal and parent/child movement. Arrow keys aliased to hjkl.
+
+  DDS-090:
+    id: DDS-090
+    type: DDS
+    title: "Key Event Handling for Navigation"
+    status: needs_review
+    script: interactive-lastenheft
+    parent: SRS-054
+    description: |
+      Implement the key event dispatch loop that maps key presses to navigation
+      actions. Each navigation key (j, k, h, l, space, arrows) must be handled
+      with the correct traversal semantics defined in the DTC test cases.
+
+  DTC-045:
+    id: DTC-045
+    type: DTC
+    title: "j Moves to Next Same-Parent Sibling"
+    status: needs_review
+    script: interactive-lastenheft
+    parent: DDS-090
+    description: |
+      j key moves cursor to next sibling sharing the same parent.
+    test_scenario: |
+      GIVEN cursor on node with same-parent sibling below
+      WHEN j pressed
+      THEN selection moves to that sibling
+
+  DTC-046:
+    id: DTC-046
+    type: DTC
+    title: "k Moves to Previous Same-Parent Sibling"
+    status: needs_review
+    script: interactive-lastenheft
+    parent: DDS-090
+    description: |
+      k key moves cursor to previous sibling sharing the same parent.
+    test_scenario: |
+      GIVEN cursor on node with same-parent sibling above
+      WHEN k pressed
+      THEN selection moves to that sibling
+
+  DTC-047:
+    id: DTC-047
+    type: DTC
+    title: "h Jumps to Parent Node"
+    status: needs_review
+    script: interactive-lastenheft
+    parent: DDS-090
+    description: |
+      h key moves cursor to the parent of the current node.
+    test_scenario: |
+      GIVEN cursor on a child node
+      WHEN h pressed
+      THEN selection moves to the parent node
+
+  DTC-048:
+    id: DTC-048
+    type: DTC
+    title: "l on Collapsed Node Expands and Moves to First Child"
+    status: needs_review
+    script: interactive-lastenheft
+    parent: DDS-090
+    description: |
+      l key on a collapsed node expands it and moves to its first child.
+    test_scenario: |
+      GIVEN cursor on collapsed node with children
+      WHEN l pressed
+      THEN node expands and cursor moves to first child
+
+  DTC-049:
+    id: DTC-049
+    type: DTC
+    title: "j Falls Back to Advance-by-1 When No Sibling Found"
+    status: needs_review
+    script: interactive-lastenheft
+    parent: DDS-090
+    description: |
+      When j is pressed and no same-parent sibling exists below, advance
+      cursor by one position in the flat visible list.
+    test_scenario: |
+      GIVEN cursor on last same-parent sibling
+      WHEN j pressed
+      THEN cursor advances by 1 in flat visible list
+
+  DTC-050:
+    id: DTC-050
+    type: DTC
+    title: "k Falls Back to Decrease-by-1 When No Sibling Found"
+    status: needs_review
+    script: interactive-lastenheft
+    parent: DDS-090
+    description: |
+      When k is pressed and no same-parent sibling exists above, decrease
+      cursor by one position in the flat visible list.
+    test_scenario: |
+      GIVEN cursor on first same-parent sibling
+      WHEN k pressed
+      THEN cursor decreases by 1 in flat visible list
+
+  DTC-051:
+    id: DTC-051
+    type: DTC
+    title: "h on Root Node Collapses Instead of Navigating"
+    status: needs_review
+    script: interactive-lastenheft
+    parent: DDS-090
+    description: |
+      When h is pressed on a root node that is expanded, the node collapses
+      rather than attempting to navigate to a non-existent parent.
+    test_scenario: |
+      GIVEN cursor on expanded root node (depth=0)
+      WHEN h pressed
+      THEN node collapses, cursor stays on root node
+
+  DTC-052:
+    id: DTC-052
+    type: DTC
+    title: "j at Bottom of List Stays at Last Index"
+    status: needs_review
+    script: interactive-lastenheft
+    parent: DDS-090
+    description: |
+      When j is pressed on the last visible node and no sibling exists,
+      the cursor remains at the last index.
+    test_scenario: |
+      GIVEN cursor on last visible node in list
+      WHEN j pressed
+      THEN cursor remains at last index (no wrap-around)
+
+  DTC-053:
+    id: DTC-053
+    type: DTC
+    title: "l on Already-Expanded Node Moves to First Child"
+    status: needs_review
+    script: interactive-lastenheft
+    parent: DDS-090
+    description: |
+      When l is pressed on an already-expanded node, cursor moves directly
+      to first child without toggling expansion.
+    test_scenario: |
+      GIVEN cursor on already-expanded node with children
+      WHEN l pressed
+      THEN cursor moves to first child without changing expansion
+
+  SRS-055:
+    id: SRS-055
+    type: SRS
+    title: "Detailed Requirement Information Panel"
+    status: needs_review
+    script: interactive-lastenheft
+    parent: URS-018
+    description: |
+      Display a detail panel at the bottom of the screen when Enter is pressed,
+      showing all fields of the selected requirement including description and
+      test_scenario if present.
+
+  SRS-084:
+    id: SRS-084
+    type: SRS
+    title: "Interactive Data Refresh"
+    status: needs_review
+    script: interactive-lastenheft
+    parent: URS-018
+    description: |
+      Support reloading reqs.yaml from disk without restarting the TUI.
+      r key triggers a full reload and tree rebuild preserving cursor position
+      where possible.
+
+  SRS-101:
+    id: SRS-101
+    type: SRS
+    title: "Extended Test Case Display"
+    status: needs_review
+    script: interactive-lastenheft
+    parent: URS-018
+    description: |
+      t key shows all DTC children of the currently selected node, displaying
+      their test_scenario fields for manual verification.
+
+  URS-021:
+    id: URS-021
+    type: URS
+    title: "Edit and Delete Requirements"
+    status: needs_review
+    script: interactive-lastenheft
+    parent: null
+    description: |
+      Allow users to edit requirements inline using $EDITOR and delete
+      individual requirements or bulk-delete all inactive requirements.
+
+  URS-023:
+    id: URS-023
+    type: URS
+    title: "Formal Correctness Gatekeeping"
+    status: needs_review
+    script: validate-reqs
+    parent: null
+    description: |
+      Validate reqs.yaml against formal rules before commits. Block commits
+      when errors are detected. Emit warnings for structural gaps without
+      blocking. Covers 11 error rules and 5 warning rules.
