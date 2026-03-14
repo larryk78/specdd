@@ -1,6 +1,8 @@
 # specdd
 
-A requirements engineering framework for AI-assisted development, based on IREB standards.
+A prototype implementation of a requirements engineering framework for AI-assisted development, based on IREB standards.
+
+The concept is the work of [Gero Blomeyer](https://www.linkedin.com/in/gero-blomeyer-b32105136/). This is an unofficial prototype — I couldn't wait for the real thing.
 
 The core idea: LLMs generate vague code from vague requirements. This framework forces a decomposition cascade that eliminates ambiguity before any code is written.
 
